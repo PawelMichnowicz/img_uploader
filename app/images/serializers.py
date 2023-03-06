@@ -14,6 +14,7 @@ from rest_framework import serializers
 
 from .models import Image, Thumbnail
 
+
 class ThumbnailGenerator(ImageSpec):
     def __new__(cls, source, height):
         cls.processors = [ResizeToFit(height=height)]
@@ -24,11 +25,9 @@ class ThumbnailGenerator(ImageSpec):
 
 
 class ImageSerializer(ModelSerializer):
-
     class Meta:
         model = Image
-        fields = ['author', 'creation_time', 'file']
-
+        fields = ["author", "creation_time", "file"]
 
 
 class ThumbnailSerializer(ModelSerializer):
@@ -36,20 +35,21 @@ class ThumbnailSerializer(ModelSerializer):
 
     class Meta:
         model = Thumbnail
-        fields = ['original_image', 'height', 'file', 'domain']
-
+        fields = ["original_image", "height", "file", "domain"]
 
     def create(self, validated_data):
-        thumbnail_generator = ThumbnailGenerator(source=validated_data['original_image'].file, height=validated_data['height'])
+        thumbnail_generator = ThumbnailGenerator(
+            source=validated_data["original_image"].file,
+            height=validated_data["height"],
+        )
         thumbnail = thumbnail_generator.generate()
 
-        filename, extension = validated_data['original_image'].file.name.split(".")
-        temporary_file = (filename + f"_{validated_data['height']}px.{extension}")
+        filename, extension = validated_data["original_image"].file.name.split(".")
+        temporary_file = filename + f"_{validated_data['height']}px.{extension}"
         f = open(temporary_file, "wb+")
         f.write(thumbnail.read())
-        validated_data['file'] = File(f)
+        validated_data["file"] = File(f)
         instance = super().create(validated_data)
         os.remove(temporary_file)
 
         return instance
-

@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 
 
 def upload_to(instance, filename):
-    return 'images/{filename}'.format(filename=filename)
+    return "images/{filename}".format(filename=filename)
 
 
 class Image(models.Model):
@@ -19,4 +19,3 @@ class Thumbnail(models.Model):
     original_image = models.ForeignKey(Image, on_delete=models.CASCADE)
     height = models.IntegerField()
     file = models.ImageField(upload_to=upload_to, blank=True)
-
