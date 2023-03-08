@@ -3,6 +3,8 @@ import uuid
 from django.contrib.auth import get_user_model
 from django.db import models
 
+from .validators import check_file_size
+
 
 def upload_to(instance, filename):
     return "images/{filename}".format(filename=filename)
@@ -13,7 +15,7 @@ class Image(models.Model):
         get_user_model(), on_delete=models.CASCADE, related_name="images"
     )
     creation_time = models.DateTimeField(auto_now_add=True)
-    file = models.ImageField(upload_to=upload_to)
+    file = models.ImageField(upload_to=upload_to, validators=[check_file_size])
 
 
 class Thumbnail(models.Model):

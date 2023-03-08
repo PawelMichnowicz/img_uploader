@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import mixins, status
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
@@ -24,12 +25,11 @@ class ImageViewSet(
     GenericViewSet,
 ):
     serializer_class = ImageSerializer
-    queryset = Image.objects.all()
 
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset().filter(author=request.user)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        user = self.request.user
+        self.queryset = Image.objects.filter(author=user)
+        return self.queryset
 
     def perform_create(self, serializer):
         serializer.save()
@@ -48,7 +48,7 @@ class ImageViewSet(
     def get_expiring_url(self, request, pk):
 
         if not request.user.plan.expiring_image_access:
-            return Response({"detail": "You don't have permission to this action"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "You don't have permission to this action"}, status=status.HTTP_403_FORBIDDEN)
 
         time_serializer = self.get_serializer_class()(data=request.data)
         if time_serializer.is_valid():
@@ -73,6 +73,8 @@ class ImageViewSet(
 
 
 class ExpiringImageUrl(APIView):
+    permission_classes = [AllowAny]
+
     def get(self, request):
 
         token = request.GET.get("token")

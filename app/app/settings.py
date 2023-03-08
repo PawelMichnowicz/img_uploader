@@ -133,4 +133,13 @@ MEDIA_ROOT = os.path.join(os.path.dirname(BASE_DIR), "mediafiles")
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}
+
+
 AUTH_USER_MODEL = "users.User"
+
+

@@ -1,13 +1,14 @@
 from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
                                         PermissionsMixin)
 from django.contrib.postgres.fields import ArrayField
+from django.core.validators import MinValueValidator
 from django.db import models
 
 
 class Plan(models.Model):
 
     name = models.CharField(max_length=20)
-    thumbnail_sizes = ArrayField(models.IntegerField())
+    thumbnail_sizes = ArrayField(models.IntegerField(validators=[MinValueValidator(1)]))
     original_image_access = models.BooleanField()
     expiring_image_access = models.BooleanField()
 

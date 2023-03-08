@@ -6,7 +6,7 @@ from .views import ExpiringImageUrl, ImageViewSet
 app_name = "images"
 
 router = routers.SimpleRouter()
-router.register("images", ImageViewSet)
+router.register("images", ImageViewSet, basename='Image')
 
 
 urlpatterns = [
