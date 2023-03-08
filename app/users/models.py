@@ -1,8 +1,5 @@
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    BaseUserManager,
-    PermissionsMixin,
-)
+from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager,
+                                        PermissionsMixin)
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
@@ -13,6 +10,9 @@ class Plan(models.Model):
     thumbnail_sizes = ArrayField(models.IntegerField())
     original_image_access = models.BooleanField()
     expiring_image_access = models.BooleanField()
+
+    def __str__(self):
+        return self.name
 
 
 class UserManager(BaseUserManager):

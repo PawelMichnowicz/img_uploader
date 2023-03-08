@@ -14,7 +14,7 @@ def create_default_plans(apps, schema_editor):
             "expiring_image_access": False,
         },
         {
-            "name": 'Premium"',
+            "name": 'Premium',
             "thumbnail_sizes": [200, 400],
             "original_image_access": True,
             "expiring_image_access": False,

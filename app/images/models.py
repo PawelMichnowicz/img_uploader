@@ -1,5 +1,7 @@
-from django.db import models
+import uuid
+
 from django.contrib.auth import get_user_model
+from django.db import models
 
 
 def upload_to(instance, filename):
@@ -16,6 +18,16 @@ class Image(models.Model):
 
 class Thumbnail(models.Model):
 
-    original_image = models.ForeignKey(Image, on_delete=models.CASCADE)
+    original_image = models.ForeignKey(
+        Image, on_delete=models.CASCADE, related_name="thumbnails"
+    )
     height = models.IntegerField()
     file = models.ImageField(upload_to=upload_to, blank=True)
+
+
+class ImageToken(models.Model):
+    original_image = models.ForeignKey(
+        Image, on_delete=models.CASCADE, related_name="token"
+    )
+    token = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    expiration_date = models.DateTimeField()

@@ -1,18 +1,14 @@
-from rest_framework.serializers import ModelSerializer
-import re
 import os
-from .models import Image
-from django.core.files import File
-from django.urls import reverse
-from django.shortcuts import get_object_or_404
-from django.conf import settings
+import uuid
 
 from django.contrib.sites.shortcuts import get_current_site
+from django.core.files import File
 from imagekit import ImageSpec
 from imagekit.processors import ResizeToFit
 from rest_framework import serializers
+from rest_framework.serializers import ModelSerializer
 
-from .models import Image, Thumbnail
+from .models import Image, ImageToken, Thumbnail
 
 
 class ThumbnailGenerator(ImageSpec):
@@ -24,18 +20,43 @@ class ThumbnailGenerator(ImageSpec):
         super().__init__(source)
 
 
-class ImageSerializer(ModelSerializer):
-    class Meta:
-        model = Image
-        fields = ["author", "creation_time", "file"]
-
-
 class ThumbnailSerializer(ModelSerializer):
-    domain = serializers.CharField(read_only=True)
-
     class Meta:
         model = Thumbnail
-        fields = ["original_image", "height", "file", "domain"]
+        fields = ["file"]
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data[instance.height] = data["file"]
+        del data["file"]
+        return data
+
+
+class ImageSerializer(ModelSerializer):
+    thumbnails = ThumbnailSerializer(many=True, read_only=True)
+    original_image = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Image
+        fields = ["pk", "file", "original_image", "thumbnails"]
+        extra_kwargs = {"file": {"write_only": True}}
+
+    def get_original_image(self, obj):
+        if obj.author.plan.original_image_access:
+            domain = get_current_site(self.context["request"])
+            return "http://" + str(domain) + obj.file.url
+        else:
+            return None
+
+    def create(self, validated_data):
+        validated_data["author"] = self.context["request"].user
+        return super().create(validated_data)
+
+
+class ThumbnailCreateSerializer(ModelSerializer):
+    class Meta:
+        model = Thumbnail
+        fields = ["original_image", "height", "file"]
 
     def create(self, validated_data):
         thumbnail_generator = ThumbnailGenerator(
@@ -53,3 +74,25 @@ class ThumbnailSerializer(ModelSerializer):
         os.remove(temporary_file)
 
         return instance
+
+
+class ExpirationTimeSerializer(serializers.ModelSerializer):
+    expiration_seconds = serializers.IntegerField(min_value=300, max_value=30000)
+
+
+class ImageTokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImageToken
+        fields = [
+            "original_image",
+            "token",
+            "expiration_date",
+        ]
+
+    def create(self, validated_data):
+        validated_data["token"] = uuid.uuid4()
+        return super().create(validated_data)
+
+
+class ExpirationTimeSerializer(serializers.Serializer):
+    expiration_seconds = serializers.IntegerField(min_value=300, max_value=30000)
