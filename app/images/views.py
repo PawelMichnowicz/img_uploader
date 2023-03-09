@@ -14,8 +14,12 @@ from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 
 from .models import Image, ImageToken
-from .serializers import (ExpirationTimeSerializer, ImageSerializer,
-                          ImageTokenSerializer, ThumbnailCreateSerializer)
+from .serializers import (
+    ExpirationTimeSerializer,
+    ImageSerializer,
+    ImageTokenSerializer,
+    ThumbnailCreateSerializer,
+)
 
 
 class ImageViewSet(
@@ -27,11 +31,13 @@ class ImageViewSet(
     serializer_class = ImageSerializer
 
     def get_queryset(self):
+        """Define queryset with filtering by request user"""
         user = self.request.user
         self.queryset = Image.objects.filter(author=user)
         return self.queryset
 
     def perform_create(self, serializer):
+        """After creating an image instance, create thumbnails based on available sizes in user plan"""
         serializer.save()
         for height in self.request.user.plan.thumbnail_sizes:
             original_image = serializer.instance.pk
@@ -44,11 +50,14 @@ class ImageViewSet(
             if thumbnail_serializer.is_valid():
                 thumbnail_serializer.save()
 
-    @action(detail=True, methods=["post"], serializer_class=ExpirationTimeSerializer)
+    @action(detail=True, methods=["post"], serializer_class=ExpirationTimeSerializer, url_name='get_expiring_url')
     def get_expiring_url(self, request, pk):
-
+        """Create expiring token that contains image data and place it in the url as query param"""
         if not request.user.plan.expiring_image_access:
-            return Response({"detail": "You don't have permission to this action"}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "You don't have permission to this action"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         time_serializer = self.get_serializer_class()(data=request.data)
         if time_serializer.is_valid():
@@ -56,6 +65,7 @@ class ImageViewSet(
         else:
             return Response(time_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+        # collect data and create token instance using them
         image = self.get_object()
         utc_now = timezone.now().replace(tzinfo=pytz.utc)
         expiration_date = utc_now + datetime.timedelta(0, expiration_seconds)
@@ -76,9 +86,11 @@ class ExpiringImageUrl(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-
+        """Get image instance by using data from token"""
         token = request.GET.get("token")
         token_instance = get_object_or_404(ImageToken, token=token)
+
+        # check if the expiration date allows to process action
         if token_instance.expiration_date < timezone.now().replace(tzinfo=pytz.utc):
             content = {"Temporary image": "Time expired"}
             return Response(content, status=status.HTTP_404_NOT_FOUND)

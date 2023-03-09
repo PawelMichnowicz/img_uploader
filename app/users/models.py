@@ -18,6 +18,7 @@ class Plan(models.Model):
 
 class UserManager(BaseUserManager):
     def create_user(self, username, password=None, **extra_fields):
+        """Create, save and return a new user"""
         if not username:
             raise ValueError("User must have an username.")
         user = self.model(username=username, **extra_fields)
@@ -26,6 +27,7 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, username, password=None):
+        """Create and return a new superuser"""
         user = self.create_user(username, password)
         user.is_staff = True
         user.is_superuser = True

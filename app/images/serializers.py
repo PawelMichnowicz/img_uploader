@@ -26,6 +26,7 @@ class ThumbnailSerializer(ModelSerializer):
         fields = ["file"]
 
     def to_representation(self, instance):
+        """Specify thumbnail sizes in your response"""
         data = super().to_representation(instance)
         data[instance.height] = data["file"]
         del data["file"]
@@ -42,6 +43,7 @@ class ImageSerializer(ModelSerializer):
         extra_kwargs = {"file": {"write_only": True}}
 
     def get_original_image(self, obj):
+        """Based on the user's plan, return a link to the original image or nothing at all"""
         if obj.author.plan.original_image_access:
             domain = get_current_site(self.context["request"])
             return "http://" + str(domain) + obj.file.url
@@ -49,6 +51,7 @@ class ImageSerializer(ModelSerializer):
             return None
 
     def create(self, validated_data):
+        """Add request user as author when creating an image"""
         validated_data["author"] = self.context["request"].user
         return super().create(validated_data)
 
@@ -59,12 +62,15 @@ class ThumbnailCreateSerializer(ModelSerializer):
         fields = ["original_image", "height", "file"]
 
     def create(self, validated_data):
+        """Create thumbnail from uploaded image"""
         thumbnail_generator = ThumbnailGenerator(
             source=validated_data["original_image"].file,
             height=validated_data["height"],
         )
         thumbnail = thumbnail_generator.generate()
 
+        # create temporary image and overwrite it with output of thmubnail generator
+        # include obtained file into validated_data and delete temporary image
         filename, extension = validated_data["original_image"].file.name.split(".")
         temporary_file = filename + f"_{validated_data['height']}px.{extension}"
         f = open(temporary_file, "wb+")
@@ -76,7 +82,7 @@ class ThumbnailCreateSerializer(ModelSerializer):
         return instance
 
 
-class ExpirationTimeSerializer(serializers.ModelSerializer):
+class ExpirationTimeSerializer(serializers.Serializer):
     expiration_seconds = serializers.IntegerField(min_value=300, max_value=30000)
 
 
@@ -90,9 +96,6 @@ class ImageTokenSerializer(serializers.ModelSerializer):
         ]
 
     def create(self, validated_data):
+        """Add generated token to the creation process"""
         validated_data["token"] = uuid.uuid4()
         return super().create(validated_data)
-
-
-class ExpirationTimeSerializer(serializers.Serializer):
-    expiration_seconds = serializers.IntegerField(min_value=300, max_value=30000)
